@@ -1,5 +1,5 @@
 require 'helper'
-require "ruby-debug"
+
 class TestSearchScope < Test::Unit::TestCase
   context "Simple, mixed type tree" do
     setup do
