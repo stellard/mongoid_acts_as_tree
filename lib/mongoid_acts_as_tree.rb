@@ -32,7 +32,7 @@ module Mongoid
 					self.class_eval do
 						define_method "#{parent_id_field}=" do | new_parent_id |
 						  if new_parent_id.present?
-								new_parent = self.class.find new_parent_id
+								new_parent = search_class.find new_parent_id
 								new_parent.children.push self, false
 							else
 								self.write_attribute parent_id_field, nil
@@ -89,7 +89,7 @@ module Mongoid
 				end
 
 				def parent
-					@_parent or (self[parent_id_field].nil? ? nil : self.class.find(self[parent_id_field]))
+					@_parent or (self[parent_id_field].nil? ? nil : search_class.find(self[parent_id_field]))
 				end
 
 				def root?
@@ -97,12 +97,12 @@ module Mongoid
 				end
 
 				def root
-					self[path_field].first.nil? ? self : self.class.find(self[path_field].first)
+					self[path_field].first.nil? ? self : search_class.find(self[path_field].first)
 				end
 
 				def ancestors
 					return [] if root?
-					self.class.where(:_id.in => self[path_field]).order_by(depth_field)
+					search_class.where(:_id.in => self[path_field]).order_by(depth_field)
 				end
 
 				def self_and_ancestors
@@ -110,11 +110,11 @@ module Mongoid
 				end
 
 				def siblings
-					self.class.where(:_id.ne => self._id, parent_id_field => self[parent_id_field]).order_by tree_order
+					search_class.where(:_id.ne => self._id, parent_id_field => self[parent_id_field]).order_by tree_order
 				end
 
 				def self_and_siblings
-					self.class.where(parent_id_field => self[parent_id_field]).order_by tree_order
+					search_class.where(parent_id_field => self[parent_id_field]).order_by tree_order
 				end
 
 				def children
@@ -132,7 +132,7 @@ module Mongoid
 
 				def descendants
 					return [] if new_record?
-					self.class.where(path_field => self._id).order_by tree_order
+					search_class.where(path_field => self._id).order_by tree_order
 				end
 
 				def self_and_descendants
@@ -234,7 +234,7 @@ module Mongoid
 				private
 
 				def find_children_for_owner
-					@parent.class.where(@parent.parent_id_field => @parent.id).
+					@parent.search_class.where(@parent.parent_id_field => @parent.id).
 						order_by @parent.tree_order
 				end
 
@@ -256,6 +256,21 @@ module Mongoid
 				def tree_order
 					acts_as_tree_options[:order] or []
 				end
+				
+				# When added as an option to acts_as_tree, search class will be used as the base from which to
+        # find tree objects. This is handy should you have a tree of objects that are of different types, but
+        # might be related through single table inheritance.
+        #
+        #     acts_as_tree :search_class => Shape
+        #
+        # In the above example, you could have a working tree of Shape, Circle and Square types (assuming
+        # Circle and Square were subclasses of Shape). If you want to do the same thing and you don't provide
+        # search_class, nesting mixed types will not work.
+        #
+        # The default is +self.class+
+        def search_class
+          acts_as_tree_options[:search_class] or self.class
+        end
 			end
 		end
 	end

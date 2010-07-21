@@ -48,6 +48,10 @@ class TestMongoidActsAsTree < Test::Unit::TestCase
 			@root_1.children = []
 			assert_equal([], @root_1.children)
 		end
+    
+    # should "create node from id " do
+    #   assert Category.create(:name => "Child 2.2", :parent => @root_1.id.to_s).parent == @root_1
+    # end 
 
     should "have roots" do
       assert eql_arrays?(Category.roots, [@root_1, @root_2])
